@@ -11,9 +11,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? process.env.ALLOWED_ORIGINS?.split(',') || ["*"]
-      : ["http://localhost:5173", "http://127.0.0.1:5173"],
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
