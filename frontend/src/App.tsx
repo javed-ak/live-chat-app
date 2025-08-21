@@ -61,7 +61,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Auto-scroll to bottom when new messages arrive
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -103,15 +102,15 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 p-4">
+      <header className="fixed top-0 left-0 right-0 z-10 bg-white shadow-sm border-b border-gray-200 p-3">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-500 rounded-full">
-              <MessageCircle className="h-6 w-6 text-white" />
+              <MessageCircle className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-gray-800">Ephemeral Chat</h1>
-              <p className="text-sm text-gray-500">Messages disappear in 5 minutes</p>
+              <h1 className="text-lg font-semibold text-gray-800">Let's Chat</h1>
+              <p className="text-xs text-gray-500">Messages disappear in 5 minutes</p>
               {currentUserGuestId && (
                 <p className="text-xs text-blue-600 font-medium">You are: {currentUserGuestId}</p>
               )}
@@ -127,13 +126,13 @@ function App() {
       </header>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 max-w-4xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 max-w-4xl mx-auto w-full pt-24 pb-24">
         {messages.length === 0 ? (
           <div className="text-center py-12">
             <div className="p-4 bg-white rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center shadow-sm">
               <MessageCircle className="h-8 w-8 text-gray-400" />
             </div>
-            <p className="text-gray-500 text-lg mb-2">Welcome to Ephemeral Chat!</p>
+            <p className="text-gray-500 text-lg mb-2">Welcome to Javed's Live Chat!</p>
             <p className="text-gray-400 text-sm">Send a message to start the conversation</p>
           </div>
         ) : (
@@ -183,7 +182,7 @@ function App() {
       </div>
 
       {/* Message Input */}
-      <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-gray-200">
+      <form onSubmit={handleSendMessage} className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-200">
         <div className="max-w-4xl mx-auto flex space-x-3">
           <input
             ref={inputRef}
@@ -191,7 +190,7 @@ function App() {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type your message..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="flex-1 px-4 py-3 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             maxLength={500}
           />
           <button
