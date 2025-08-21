@@ -108,7 +108,7 @@ function App() {
           />
           <button
             onClick={() => {
-              if (codeInput === "0911") {
+              if (codeInput === "0911" || codeInput === "1011") {
                 setIsAuthorized(true);
               } else {
                 alert("❌ Incorrect Code! Try again.");
