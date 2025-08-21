@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Users, MessageCircle } from 'lucide-react';
+import { Send, Users, MessageCircle, Lock } from 'lucide-react';
 import io from 'socket.io-client';
 
 interface Message {
@@ -17,15 +17,18 @@ function App() {
   const [userCount, setUserCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const [currentUserGuestId, setCurrentUserGuestId] = useState<string>('');
+  const [isAuthorized, setIsAuthorized] = useState(false); // NEW STATE
+  const [codeInput, setCodeInput] = useState(''); // input for code
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Connect to Socket.IO server
+    if (!isAuthorized) return; // don’t connect until authorized
+
     const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
-    
     const newSocket = io(serverUrl);
-    
+
     newSocket.on('connect', () => {
       setIsConnected(true);
       setSocket(newSocket);
@@ -58,10 +61,10 @@ function App() {
     return () => {
       newSocket.close();
     };
-  }, []);
+  }, [isAuthorized]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [messages]);
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -74,20 +77,53 @@ function App() {
   };
 
   const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const getTimeRemaining = (timestamp: number) => {
     const elapsed = Date.now() - timestamp;
-    const remaining = 5 * 60 * 1000 - elapsed; // 5 minutes - elapsed
+    const remaining = 5 * 60 * 1000 - elapsed; 
     const minutes = Math.floor(remaining / (1000 * 60));
     const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
     return { minutes, seconds, remaining };
   };
 
+  // --- GATE SCREEN BEFORE CHAT ---
+  if (!isAuthorized) {
+    return (
+      <div className="p-5 min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="bg-white p-8 rounded-2xl shadow-md max-w-sm w-full text-center">
+          <div className="p-3 bg-blue-500 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-6 w-6 text-white" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">Enter Access Code</h2>
+          <p className="text-sm text-gray-500 mb-4">Please enter the 4-digit code to join the chat.</p>
+          <input
+            type="password"
+            value={codeInput}
+            onChange={(e) => setCodeInput(e.target.value)}
+            maxLength={4}
+            placeholder="****"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+          />
+          <button
+            onClick={() => {
+              if (codeInput === "0911") {
+                setIsAuthorized(true);
+              } else {
+                alert("❌ Incorrect Code! Try again.");
+              }
+            }}
+            className="w-full py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Enter Chat
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- CHAT UI ---
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -125,64 +161,69 @@ function App() {
         </div>
       </header>
 
-      {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 max-w-4xl mx-auto w-full pt-24 pb-24">
-        {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="p-4 bg-white rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center shadow-sm">
-              <MessageCircle className="h-8 w-8 text-gray-400" />
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-3 max-w-4xl mx-auto w-full pt-24 pb-24 flex flex-col-reverse">
+        <div className="flex flex-col space-y-3 w-full">
+          {messages.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="p-4 bg-white rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center shadow-sm">
+                <MessageCircle className="h-8 w-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500 text-lg mb-2">Welcome to Javed's Live Chat!</p>
+              <p className="text-gray-400 text-sm">Send a message to start the conversation</p>
             </div>
-            <p className="text-gray-500 text-lg mb-2">Welcome to Javed's Live Chat!</p>
-            <p className="text-gray-400 text-sm">Send a message to start the conversation</p>
-          </div>
-        ) : (
-          messages.map((message) => {
-            const isOwnMessage = message.socketId === socket?.id;
-            const timeRemaining = getTimeRemaining(message.timestamp);
-            const isExpiringSoon = timeRemaining.remaining < 30000; // 30 seconds
+          ) : (
+            messages.map((message) => {
+              const isOwnMessage = message.socketId === socket?.id;
+              const timeRemaining = getTimeRemaining(message.timestamp);
+              const isExpiringSoon = timeRemaining.remaining < 30000;
 
-            return (
-              <div
-                key={message.id}
-                className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} transition-opacity duration-500 ${
-                  isExpiringSoon ? 'opacity-50' : 'opacity-100'
-                }`}
-              >
+              return (
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow-sm ${
-                    isOwnMessage
-                      ? 'bg-blue-500 text-white rounded-br-md'
-                      : 'bg-white text-gray-800 rounded-bl-md border border-gray-200'
+                  key={message.id}
+                  className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} transition-opacity duration-500 ${
+                    isExpiringSoon ? 'opacity-50' : 'opacity-100'
                   }`}
                 >
-                  {!isOwnMessage && (
-                    <p className={`text-xs font-medium mb-1 ${
-                      isOwnMessage ? 'text-blue-200' : 'text-blue-600'
-                    }`}>
-                      {message.guestId}
-                    </p>
-                  )}
-                  <p className="text-sm leading-relaxed break-words">{message.text}</p>
-                  <div className={`flex items-center justify-between mt-1 text-xs ${
-                    isOwnMessage ? 'text-blue-100' : 'text-gray-500'
-                  }`}>
-                    <span>{formatTime(message.timestamp)}</span>
-                    {isExpiringSoon && (
-                      <span className="ml-2 font-medium">
-                        {timeRemaining.minutes}:{timeRemaining.seconds.toString().padStart(2, '0')}
-                      </span>
+                  <div
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow-sm ${
+                      isOwnMessage
+                        ? 'bg-blue-500 text-white rounded-br-md'
+                        : 'bg-white text-gray-800 rounded-bl-md border border-gray-200'
+                    }`}
+                  >
+                    {!isOwnMessage && (
+                      <p className={`text-xs font-medium mb-1 ${isOwnMessage ? 'text-blue-200' : 'text-blue-600'}`}>
+                        {message.guestId}
+                      </p>
                     )}
+                    <p className="text-sm leading-relaxed break-words">{message.text}</p>
+                    <div
+                      className={`flex items-center justify-between mt-1 text-xs ${
+                        isOwnMessage ? 'text-blue-100' : 'text-gray-500'
+                      }`}
+                    >
+                      <span>{formatTime(message.timestamp)}</span>
+                      {isExpiringSoon && (
+                        <span className="ml-2 font-medium">
+                          {timeRemaining.minutes}:{timeRemaining.seconds.toString().padStart(2, '0')}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} />
+              );
+            })
+          )}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {/* Message Input */}
-      <form onSubmit={handleSendMessage} className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-200">
+      {/* Input */}
+      <form
+        onSubmit={handleSendMessage}
+        className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-gray-200"
+      >
         <div className="max-w-4xl mx-auto flex space-x-3">
           <input
             ref={inputRef}
